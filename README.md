@@ -22,7 +22,7 @@ No Mundo dos Esqueletos, movimento, seleção de alvo e ataque básico são auto
 
 ## Publicar no GitHub Pages
 
-1. Coloque `index.html`, `style.css`, `game.mjs`, `gameConfig.mjs` e `state.mjs` na **raiz** da branch `main`.
+1. Mantenha `index.html`, `style.css`, `game.mjs`, `gameConfig.mjs`, `state.mjs` e `.nojekyll` na **raiz** da branch `main`.
 2. No repositório GitHub, abra **Settings → Pages**.
 3. Em **Build and deployment**, escolha **Deploy from a branch**, branch **main**, pasta **/(root)** e salve.
 4. Abra o endereço acima após a implantação. Todos os caminhos dos arquivos são relativos, compatíveis com `/Idle-Projeto-Ryze/`.
