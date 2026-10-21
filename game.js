@@ -1,9 +1,16 @@
-import { GAME, maxHpAt, xpNeeded, damageAt } from './gameConfig.mjs';
-import { loadGame, saveGame, grantKill, buySword, buyPotion } from './state.mjs';
+(() => {
+const $ = (id) => document.getElementById(id);
+if (!window.IdleRyzeConfig || !window.IdleRyzeState) {
+  $('game').textContent = 'Não foi possível carregar os arquivos do jogo. Recarregue a página ou abra o index.html da pasta completa.';
+  return;
+}
+const { GAME, maxHpAt, xpNeeded, damageAt } = window.IdleRyzeConfig;
+const { loadGame, saveGame, grantKill, buySword, buyPotion } = window.IdleRyzeState;
 
 const Phaser = window.Phaser ?? { Scene: class {} };
-const $ = (id) => document.getElementById(id);
-const loaded = loadGame();
+let browserStorage;
+try { browserStorage = window.localStorage; } catch { /* O jogo ainda funciona sem save. */ }
+const loaded = loadGame(browserStorage);
 const state = loaded.state;
 let currentScene = null;
 let toastTimer;
@@ -12,7 +19,7 @@ let skillReadyAt = 0;
 const heldDirections = new Set();
 
 function persist() {
-  if (!saveGame(localStorage, state, loaded.writable)) toast('Não foi possível salvar nesta sessão.');
+  if (!saveGame(browserStorage, state, loaded.writable)) toast('Não foi possível salvar nesta sessão.');
   lastSave = Date.now();
 }
 
@@ -417,7 +424,7 @@ window.addEventListener('keydown',event=>{
   if(event.code==='Space'&&currentScene?.scene.key==='SkeletonWorld'){event.preventDefault();currentScene.castSkill();}
   if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(event.code))event.preventDefault();
 });
-window.addEventListener('beforeunload',()=>saveGame(localStorage,state,loaded.writable));
+window.addEventListener('beforeunload',()=>saveGame(browserStorage,state,loaded.writable));
 setInterval(()=>{renderHud();if(loaded.writable&&Date.now()-lastSave>5000)persist();},250);
 
 if(!window.Phaser){$('game').textContent='Não foi possível carregar Phaser. Verifique a conexão com a internet e recarregue a página.';}
@@ -429,3 +436,4 @@ else new Phaser.Game({
   scene:state.scene==='skeleton'?[SkeletonWorld,Village]:[Village,SkeletonWorld],
   callbacks:{postBoot(){if(loaded.warning)setTimeout(()=>toast(loaded.warning),500);}}
 });
+})();

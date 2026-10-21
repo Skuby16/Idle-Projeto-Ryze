@@ -4,7 +4,7 @@ RPG Idle 2D isométrico em português, feito com Phaser 3.90.0 via CDN. São ape
 
 ## Jogar
 
-Abra **https://skuby16.github.io/Idle-Projeto-Ryze/** depois de publicar a branch `main`. É necessária conexão com a internet para carregar o Phaser pelo CDN.
+Abra **https://skuby16.github.io/Idle-Projeto-Ryze/** depois de publicar a branch `main`. Para testar a cópia local, abra `index.html` diretamente no navegador. É necessária conexão com a internet para carregar o Phaser pelo CDN nos dois casos. O save da cópia local fica separado do save do site publicado.
 
 Na Vila, use **WASD** ou **setas** para caminhar, clique/toque no chão para ir até um ponto e pressione **E** ou **Interagir** perto do Mercador, Comandante ou Portal. No celular, use o direcional na parte inferior ou toque no chão. Toque em um NPC ou no portal para caminhar até ele e interagir.
 
@@ -16,18 +16,18 @@ No Mundo dos Esqueletos, movimento, seleção de alvo e ataque básico são auto
 - Vitória: 5 ouro, 8 XP e 2 PV. Primeiro nível em 40 XP; +3 PV máximos por nível e +1 dano a cada três níveis.
 - Habilidade: 20 de dano e recarga de 18 s. **O custo de 12 mana é provisório**, pois ainda não foi definido no documento de design.
 - Mana máxima de 30 com regeneração de 1 a cada 2,5 s, preços da loja e aumento de 20 XP na exigência por nível também são números provisórios.
-- Esqueletos renascem após 25 s; o herói, após 3 s. Os valores ficam em [`gameConfig.mjs`](./gameConfig.mjs).
+- Esqueletos renascem após 25 s; o herói, após 3 s. Os valores ficam em [`gameConfig.js`](./gameConfig.js).
 - O progresso é salvo no `localStorage` deste navegador, com versão do formato. Dados inválidos são copiados para uma chave de backup antes de começar uma sessão temporária. Saves de outra versão também são preservados; nenhuma dessas sessões substitui o progresso anterior.
 - O farm avança somente enquanto a página está aberta. Não há ganhos offline ou sincronização entre aparelhos.
 
 ## Publicar no GitHub Pages
 
-1. Mantenha `index.html`, `style.css`, `game.mjs`, `gameConfig.mjs`, `state.mjs` e `.nojekyll` na **raiz** da branch `main`.
+1. Mantenha `index.html`, `style.css`, `game.js`, `gameConfig.js`, `state.js` e `.nojekyll` na **raiz** da branch `main`.
 2. No repositório GitHub, abra **Settings → Pages**.
 3. Em **Build and deployment**, escolha **Deploy from a branch**, branch **main**, pasta **/(root)** e salve.
 4. Abra o endereço acima após a implantação. Todos os caminhos dos arquivos são relativos, compatíveis com `/Idle-Projeto-Ryze/`.
 
-Para testar localmente, se Node.js já estiver disponível, execute `node tests/serve.mjs` e acesse `http://127.0.0.1:4173/`. Abrir `index.html` diretamente com `file://` pode bloquear módulos JavaScript em alguns navegadores.
+Como alternativa para teste local, se Node.js já estiver disponível, execute `node tests/serve.mjs` e acesse `http://127.0.0.1:4173/`. Isso não é necessário para jogar pela cópia local nem pelo GitHub Pages.
 
 ## Limites e próximos passos
 
@@ -35,4 +35,4 @@ A mochila tem espaços demonstrativos; apenas a espada é equipável nesta vers�
 
 ## Verificação de código
 
-Com Node.js disponível: `node --test tests/state.test.mjs` verifica carregamento e proteção do save, progressão e compras. A checagem de sintaxe pode ser feita com `node --check game.mjs`.
+Com Node.js disponível: `node --test tests/state.test.mjs` verifica carregamento e proteção do save, progressão e compras. A checagem de sintaxe pode ser feita com `node --check game.js`. O teste `tests/file-smoke.cjs` valida especificamente a abertura por `file://` em um ambiente com Playwright e Chrome.

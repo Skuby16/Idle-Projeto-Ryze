@@ -24,13 +24,13 @@
 
       <main class="game-layout">
         <div class="scene-head"><div><span id="scene-kicker">REFÚGIO INICIAL</span><h1 id="scene-title">Vila de Ryze</h1></div><span id="scene-hint">WASD / setas para mover · E para interagir</span></div>
-        <div id="game-wrap"><div id="game" aria-label="Área do jogo"></div><div id="toast" role="status" aria-live="polite"></div></div>
+        <div id="game-wrap"><div id="game" aria-label="Área do jogo"><noscript>Ative JavaScript para jogar Idle Ryze.</noscript></div><div id="toast" role="status" aria-live="polite"></div></div>
         <div class="control-bar">
           <div id="mobile-pad" aria-label="Controle de movimento">
             <button type="button" data-dir="up" aria-label="Mover para cima">▲</button>
             <div><button type="button" data-dir="left" aria-label="Mover para a esquerda">◀</button><button type="button" data-dir="down" aria-label="Mover para baixo">▼</button><button type="button" data-dir="right" aria-label="Mover para a direita">▶</button></div>
           </div>
-          <div class="actions"><button id="interact-button" type="button">Interagir <kbd>E</kbd></button><button id="skill-button" type="button" disabled>Golpe saltado <kbd>Espaço</kbd></button><button id="return-button" type="button" hidden>Voltar à vila</button></div>
+          <div class="actions"><button id="interact-button" type="button">Interagir <kbd>E</kbd></button><button id="skill-button" type="button" hidden disabled>Golpe saltado <kbd>Espaço</kbd></button><button id="return-button" type="button" hidden>Voltar à vila</button></div>
           <div class="legend" id="legend">Clique/toque no chão para caminhar. Aproxime-se de um personagem ou do portal.</div>
         </div>
       </main>
@@ -39,6 +39,8 @@
 
     <dialog id="panel"><div class="dialog-head"><div><span id="panel-kicker"></span><h2 id="panel-title"></h2></div><button id="panel-close" type="button" aria-label="Fechar">✕</button></div><div id="panel-body"></div></dialog>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.90.0/phaser.min.js"></script>
-    <script type="module" src="./game.mjs"></script>
+    <script src="./gameConfig.js"></script>
+    <script src="./state.js"></script>
+    <script src="./game.js"></script>
   </body>
 </html>

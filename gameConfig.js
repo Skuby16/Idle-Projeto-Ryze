@@ -1,6 +1,8 @@
+// Script clássico para também funcionar quando index.html é aberto por file://.
+((global) => {
 // Valores de protótipo. Ajustar aqui após testes de balanceamento.
 // Mana, preços da loja e XP após o primeiro nível são parâmetros provisórios.
-export const GAME = Object.freeze({
+const GAME = Object.freeze({
   saveKey: 'idle-ryze-2.save',
   saveVersion: 1,
   hero: { maxHp: 28, maxMana: 30, damage: 5, attackMs: 800, moveSpeed: 175, manaRegenMs: 2500, respawnMs: 3000, healOnKill: 2 },
@@ -13,6 +15,11 @@ export const GAME = Object.freeze({
   enemyAttackRadius: 68,
 });
 
-export const xpNeeded = (level) => GAME.progression.firstLevelXp + (level - 1) * GAME.progression.extraXpPerLevel;
-export const maxHpAt = (level) => GAME.hero.maxHp + (level - 1) * GAME.progression.hpPerLevel;
-export const damageAt = (level, swordLevel = 0) => GAME.hero.damage + Math.floor((level - 1) / GAME.progression.damageEveryLevels) + swordLevel * GAME.shop.swordDamage;
+const xpNeeded = (level) => GAME.progression.firstLevelXp + (level - 1) * GAME.progression.extraXpPerLevel;
+const maxHpAt = (level) => GAME.hero.maxHp + (level - 1) * GAME.progression.hpPerLevel;
+const damageAt = (level, swordLevel = 0) => GAME.hero.damage + Math.floor((level - 1) / GAME.progression.damageEveryLevels) + swordLevel * GAME.shop.swordDamage;
+
+const api = { GAME, xpNeeded, maxHpAt, damageAt };
+global.IdleRyzeConfig = api;
+if (typeof module === 'object' && module.exports) module.exports = api;
+})(globalThis);

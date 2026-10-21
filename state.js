@@ -1,12 +1,15 @@
-import { GAME, maxHpAt, xpNeeded } from './gameConfig.mjs';
+((global) => {
+const config = global.IdleRyzeConfig || (typeof module === 'object' && module.exports ? require('./gameConfig.js') : null);
+if (!config) return; // game.js exibirá uma mensagem caso gameConfig.js não carregue.
+const { GAME, maxHpAt, xpNeeded } = config;
 
 const cleanInt = (value, fallback, min, max) => Number.isFinite(value) ? Math.min(max, Math.max(min, Math.floor(value))) : fallback;
 
-export function freshState() {
+function freshState() {
   return { version: GAME.saveVersion, level: 1, xp: 0, gold: 0, hp: GAME.hero.maxHp, mana: GAME.hero.maxMana, swordLevel: 0, scene: 'village' };
 }
 
-export function normalizeState(raw) {
+function normalizeState(raw) {
   if (!raw || raw.version !== GAME.saveVersion || typeof raw !== 'object') return null;
   const level = cleanInt(raw.level, 1, 1, 999);
   return {
@@ -21,9 +24,9 @@ export function normalizeState(raw) {
   };
 }
 
-export function loadGame(storage = globalThis.localStorage) {
+function loadGame(storage) {
   let serialized;
-  try { serialized = storage.getItem(GAME.saveKey); }
+  try { storage ??= global.localStorage; serialized = storage.getItem(GAME.saveKey); }
   catch { return { state: freshState(), writable: false, warning: 'Armazenamento indisponível. Esta sessão não será salva.' }; }
   if (serialized === null) return { state: freshState(), writable: true, warning: '' };
   try {
@@ -37,13 +40,13 @@ export function loadGame(storage = globalThis.localStorage) {
   return { state: freshState(), writable: false, warning: 'Save danificado: cópia de segurança criada. Esta sessão não será salva.' };
 }
 
-export function saveGame(storage, state, writable = true) {
+function saveGame(storage, state, writable = true) {
   if (!writable) return false;
   try { storage.setItem(GAME.saveKey, JSON.stringify(normalizeState(state))); return true; }
   catch { return false; }
 }
 
-export function grantKill(state) {
+function grantKill(state) {
   state.gold += GAME.skeleton.gold;
   state.xp += GAME.skeleton.xp;
   state.hp = Math.min(maxHpAt(state.level), state.hp + GAME.hero.healOnKill);
@@ -58,16 +61,21 @@ export function grantKill(state) {
   return levels;
 }
 
-export function buySword(state) {
+function buySword(state) {
   if (state.gold < GAME.shop.swordCost || state.swordLevel >= 99) return false;
   state.gold -= GAME.shop.swordCost;
   state.swordLevel++;
   return true;
 }
 
-export function buyPotion(state) {
+function buyPotion(state) {
   if (state.gold < GAME.shop.potionCost || state.hp >= maxHpAt(state.level)) return false;
   state.gold -= GAME.shop.potionCost;
   state.hp = Math.min(maxHpAt(state.level), state.hp + GAME.shop.potionHeal);
   return true;
 }
+
+const api = { freshState, normalizeState, loadGame, saveGame, grantKill, buySword, buyPotion };
+global.IdleRyzeState = api;
+if (typeof module === 'object' && module.exports) module.exports = api;
+})(globalThis);

@@ -1,7 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { GAME, damageAt, maxHpAt } from '../gameConfig.mjs';
-import { freshState, loadGame, saveGame, grantKill, buySword, buyPotion } from '../state.mjs';
+import config from '../gameConfig.js';
+import stateModule from '../state.js';
+const { GAME, damageAt, maxHpAt } = config;
+const { freshState, loadGame, saveGame, grantKill, buySword, buyPotion } = stateModule;
 
 function memoryStorage(initial = {}) {
   const data = new Map(Object.entries(initial));
