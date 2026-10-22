@@ -1,0 +1,106 @@
+[gd_scene load_steps=9 format=3]
+
+[ext_resource type="Script" path="res://godot/scripts/main.gd" id="1_main"]
+[ext_resource type="Script" path="res://godot/scripts/arena.gd" id="2_arena"]
+[ext_resource type="Script" path="res://godot/scripts/boss.gd" id="8_boss"]
+[ext_resource type="Texture2D" path="res://assets/village-courtyard.png" id="3_village"]
+[ext_resource type="Texture2D" path="res://assets/swordsman.png" id="4_hero"]
+[ext_resource type="Texture2D" path="res://assets/merchant.png" id="5_merchant"]
+[ext_resource type="Texture2D" path="res://assets/portal-commander.png" id="6_commander"]
+[ext_resource type="Texture2D" path="res://assets/skeleton-portal.png" id="7_portal"]
+
+[node name="IdleRyze" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1_main")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.06, 0.12, 0.15, 1)
+
+[node name="World" type="Node2D" parent="."]
+
+[node name="Village" type="Node2D" parent="World"]
+
+[node name="Backdrop" type="Sprite2D" parent="World/Village"]
+scale = Vector2(0.65104, 0.65137)
+texture = ExtResource("3_village")
+
+[node name="Merchant" type="Node2D" parent="World/Village"]
+position = Vector2(-260, 5)
+
+[node name="Sprite" type="Sprite2D" parent="World/Village/Merchant"]
+position = Vector2(0, -51)
+scale = Vector2(0.0664, 0.0664)
+texture = ExtResource("5_merchant")
+
+[node name="Commander" type="Node2D" parent="World/Village"]
+position = Vector2(140, -45)
+
+[node name="Sprite" type="Sprite2D" parent="World/Village/Commander"]
+position = Vector2(0, -55)
+scale = Vector2(0.0716, 0.0716)
+texture = ExtResource("6_commander")
+
+[node name="Portal" type="Sprite2D" parent="World/Village"]
+position = Vector2(340, -160)
+scale = Vector2(0.15625, 0.15625)
+texture = ExtResource("7_portal")
+
+[node name="Hero" type="Node2D" parent="World/Village"]
+position = Vector2(-15, 125)
+
+[node name="Sprite" type="Sprite2D" parent="World/Village/Hero"]
+position = Vector2(0, -52)
+scale = Vector2(0.07065, 0.07065)
+texture = ExtResource("4_hero")
+
+[node name="SkeletonWorld" type="Node2D" parent="World"]
+visible = false
+script = ExtResource("2_arena")
+
+[node name="Hero" type="Node2D" parent="World/SkeletonWorld"]
+position = Vector2(-215, 80)
+
+[node name="Sprite" type="Sprite2D" parent="World/SkeletonWorld/Hero"]
+position = Vector2(0, -52)
+scale = Vector2(0.07065, 0.07065)
+texture = ExtResource("4_hero")
+
+[node name="Dungeon" type="Node2D" parent="World"]
+visible = false
+script = ExtResource("2_arena")
+dungeon = true
+
+[node name="Boss" type="Node2D" parent="World/Dungeon"]
+position = Vector2(160, -25)
+script = ExtResource("8_boss")
+
+[node name="Hero" type="Node2D" parent="World/Dungeon"]
+position = Vector2(-215, 80)
+
+[node name="Sprite" type="Sprite2D" parent="World/Dungeon/Hero"]
+position = Vector2(0, -52)
+scale = Vector2(0.07065, 0.07065)
+texture = ExtResource("4_hero")
+
+[node name="HUD" type="CanvasLayer" parent="."]
+
+[node name="UI" type="Control" parent="HUD"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2

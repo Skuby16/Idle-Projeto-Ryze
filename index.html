@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#101c25">
+    <meta name="description" content="Idle Ryze 2.0 — explore a vila e enfrente esqueletos em combate automático.">
+    <title>Idle Ryze 2.0 — Protótipo</title>
+    <link rel="stylesheet" href="./style.css">
+  </head>
+  <body>
+    <div id="app">
+      <header class="topbar">
+        <div class="brand"><span class="brand-mark">✦</span><span>IDLE <strong>RYZE</strong><small>2.0 · protótipo</small></span></div>
+        <div class="resources" aria-label="Status do Espadachim">
+          <div class="resource" title="Nível"><span>NV</span><strong id="level">1</strong></div>
+          <div class="resource bar-resource"><span>VIDA</span><div class="meter"><div id="hp-fill" class="fill hp"></div></div><strong id="hp">28/28</strong></div>
+          <div class="resource bar-resource"><span>MANA</span><div class="meter"><div id="mana-fill" class="fill mana"></div></div><strong id="mana">30/30</strong></div>
+          <div class="resource bar-resource"><span>XP</span><div class="meter"><div id="xp-fill" class="fill xp"></div></div><strong id="xp">0/40</strong></div>
+          <div class="resource gold"><span>◆</span><strong id="gold">0</strong></div>
+        </div>
+        <button id="inventory-button" class="top-action" type="button" aria-haspopup="dialog">Mochila <kbd>I</kbd></button>
+      </header>
+
+      <main class="game-layout">
+        <div class="scene-head"><div><span id="scene-kicker">REFÚGIO INICIAL</span><h1 id="scene-title">Vila de Ryze</h1></div><span id="scene-hint">WASD / setas para mover · E para interagir</span></div>
+        <div id="game-wrap"><div id="game" aria-label="Área do jogo"><noscript>Ative JavaScript para jogar Idle Ryze.</noscript></div><div id="toast" role="status" aria-live="polite"></div></div>
+        <div class="control-bar">
+          <div id="mobile-pad" aria-label="Controle de movimento">
+            <button type="button" data-dir="up" aria-label="Mover para cima">▲</button>
+            <div><button type="button" data-dir="left" aria-label="Mover para a esquerda">◀</button><button type="button" data-dir="down" aria-label="Mover para baixo">▼</button><button type="button" data-dir="right" aria-label="Mover para a direita">▶</button></div>
+          </div>
+          <div class="actions"><button id="interact-button" type="button">Interagir <kbd>E</kbd></button><button id="skill-button" type="button" hidden disabled>Golpe saltado <kbd>Espaço</kbd></button><button id="return-button" type="button" hidden>Voltar à vila</button></div>
+          <div class="legend" id="legend">Clique/toque no chão para caminhar. Aproxime-se de um personagem ou do portal.</div>
+        </div>
+      </main>
+      <footer>Progresso salvo neste navegador · Farm somente com o jogo aberto · Arte original em desenvolvimento</footer>
+    </div>
+
+    <dialog id="panel"><div class="dialog-head"><div><span id="panel-kicker"></span><h2 id="panel-title"></h2></div><button id="panel-close" type="button" aria-label="Fechar">✕</button></div><div id="panel-body"></div></dialog>
+    <script src="./phaser.min.js"></script>
+    <script src="./gameConfig.js"></script>
+    <script src="./state.js"></script>
+    <script src="./game.js"></script>
+  </body>
+</html>

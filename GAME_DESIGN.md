@@ -26,7 +26,9 @@ Reconstrução completa do jogo **Idle Ryze** para web PC e celular. **Não** mi
 - Valores de protótipo usados anteriormente: herói **28 PV**, **5 dano por ataque**, intervalo **0,8 s**; Esqueleto **30 PV**, **3 dano por ataque**, intervalo **1,6 s**.
 - Vitória contra esqueleto: **5 ouro** e **8 XP**; primeira subida de nível a **40 XP**; recupera **2 PV** ao vencer.
 - Evolução inicial anterior: **+3 PV máximos por nível**, **+1 dano a cada 3 níveis**. Ao morrer, renascimento após **3 s**.
-- Respawn de monstros: pedido mais recente mencionou **25 segundos**. Há uma definição anterior de **45 segundos**: tratar como valor ajustável e validar no teste.
+- Respawn dos esqueletos comuns: **25 segundos após a derrota**, em valor configurável. A referência antiga de 45 segundos foi substituída pelo pedido mais recente.
+- Nesta iteração do Godot, cada **esqueleto comum derrotado tem 10% de chance** de soltar uma **Chave da Dungeon do Rei Esqueleto**. Cada entrada consome uma chave. O Rei Esqueleto é boss e não pode ser corrompido. Seus 100 PV, 4 de dano e intervalo de 2 s são valores **provisórios**, centralizados para balanceamento; recompensas próprias ainda não foram definidas.
+- Na run dos Esqueletos, o farm continua automaticamente enquanto o jogo está aberto; cada monstro renasce **25 s após ser derrotado**. A HUD mostra nível, barras de vida/mana/XP, ouro e chaves. Um botão **Menu** fica no canto superior direito.
 - Equipamentos no inventário: **4 slots separados**, para **arma/espada**, **capacete**, **botas** e **peitoral**. Ao lado, mostrar a **mochila** com espaços vazios preparados para os itens.
 - Ouro, XP, nível, vida e mana visíveis na HUD, e feedback visual de ataques e de subida de nível.
 - **Corrupção dos monstros**: Pedra de Corrupção e outros requisitos / probabilidades por tipo de monstro. O usuário quer aplicar a regra aos monstros comuns de **todos os mundos**, incluindo centauros, **exceto bosses de dungeon**. **Não inventar** os números e os pré-requisitos ainda não recuperados; documentar como pendente.
