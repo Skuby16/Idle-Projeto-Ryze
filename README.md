@@ -1,10 +1,10 @@
-# Idle Ryze 2.0 — protótipo jogável (v0.1)
+# Idle Ryze 2.0 — protótipo jogável com primeira arte da Vila
 
-RPG Idle 2D isométrico em português, feito com Phaser 3.90.0 via CDN. São apenas arquivos HTML, CSS e JavaScript; não há build, backend nem instalação para jogar. A arte vetorial é provisória e original.
+RPG Idle 2D isométrico em português, feito com Phaser 3.90.0 em arquivos estáticos. Não há build, backend nem instalação para jogar. A Vila agora tem um cenário ilustrado original, Espadachim, Mercador, Comandante e portal em imagens separadas. O Mundo dos Esqueletos ainda usa arte vetorial provisória.
 
 ## Jogar
 
-Abra **https://skuby16.github.io/Idle-Projeto-Ryze/** depois de publicar a branch `main`. Para testar a cópia local, abra `index.html` diretamente no navegador. É necessária conexão com a internet para carregar o Phaser pelo CDN nos dois casos. O save da cópia local fica separado do save do site publicado.
+Abra **https://skuby16.github.io/Idle-Projeto-Ryze/** depois de publicar a branch `main`. Para testar a cópia local, abra `index.html` diretamente no navegador. O Phaser e as ilustrações já estão na pasta do jogo, então a cópia local funciona sem internet. O save da cópia local fica separado do save do site publicado.
 
 Na Vila, use **WASD** ou **setas** para caminhar, clique/toque no chão para ir até um ponto e pressione **E** ou **Interagir** perto do Mercador, Comandante ou Portal. No celular, use o direcional na parte inferior ou toque no chão. Toque em um NPC ou no portal para caminhar até ele e interagir.
 
@@ -22,7 +22,7 @@ No Mundo dos Esqueletos, movimento, seleção de alvo e ataque básico são auto
 
 ## Publicar no GitHub Pages
 
-1. Mantenha `index.html`, `style.css`, `game.js`, `gameConfig.js`, `state.js` e `.nojekyll` na **raiz** da branch `main`.
+1. Mantenha `index.html`, `style.css`, `game.js`, `gameConfig.js`, `state.js`, `phaser.min.js`, `PHASER_LICENSE.md`, a pasta `assets/` e `.nojekyll` na **raiz** da branch `main`.
 2. No repositório GitHub, abra **Settings → Pages**.
 3. Em **Build and deployment**, escolha **Deploy from a branch**, branch **main**, pasta **/(root)** e salve.
 4. Abra o endereço acima após a implantação. Todos os caminhos dos arquivos são relativos, compatíveis com `/Idle-Projeto-Ryze/`.
@@ -31,8 +31,10 @@ Como alternativa para teste local, se Node.js já estiver disponível, execute `
 
 ## Limites e próximos passos
 
-A mochila tem espaços demonstrativos; apenas a espada é equipável nesta versão. O Mundo dos Centauros, a partir do nível 5, e os equipamentos restantes ficam para a próxima fase. **TODO:** definir pré-requisitos e probabilidades da corrupção para monstros comuns de todos os mundos; bosses de dungeon não podem ser corrompidos. Sprites e tilesets finais ainda não estão incluídos.
+A mochila tem espaços demonstrativos; apenas a espada é equipável nesta versão. O Mundo dos Centauros, a partir do nível 5, e os equipamentos restantes ficam para a próxima fase. **TODO:** definir pré-requisitos e probabilidades da corrupção para monstros comuns de todos os mundos; bosses de dungeon não podem ser corrompidos. As ilustrações atuais são uma primeira etapa: personagens ainda não têm quadros de animação, e a arena/esqueletos continuam vetoriais. Os arquivos e prompts de arte estão documentados em [`assets/ART_DIRECTION.md`](./assets/ART_DIRECTION.md).
+
+O jogo usa uma cópia local de `phaser.min.js` 3.90.0, obtida do CDN oficial listado na [página da versão](https://phaser.io/download/release/v3.90.0). Sua licença MIT acompanha o repositório em [`PHASER_LICENSE.md`](./PHASER_LICENSE.md).
 
 ## Verificação de código
 
-Com Node.js disponível: `node --test tests/state.test.mjs` verifica carregamento e proteção do save, progressão e compras. A checagem de sintaxe pode ser feita com `node --check game.js`. O teste `tests/file-smoke.cjs` valida especificamente a abertura por `file://` em um ambiente com Playwright e Chrome.
+Com Node.js disponível: `node --test tests/state.test.mjs` verifica carregamento e proteção do save, progressão e compras. A checagem de sintaxe pode ser feita com `node --check game.js`. O teste `tests/file-smoke.cjs` valida a abertura por `file://`, o carregamento real das ilustrações, as interações e o viewport mobile em um ambiente com Playwright e Chrome. `tests/browser-smoke.cjs` cobre também compras, habilidade e acesso HTTP.

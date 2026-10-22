@@ -8,6 +8,7 @@ const { GAME, maxHpAt, xpNeeded, damageAt } = window.IdleRyzeConfig;
 const { loadGame, saveGame, grantKill, buySword, buyPotion } = window.IdleRyzeState;
 
 const Phaser = window.Phaser ?? { Scene: class {} };
+const imageAssets = {};
 let browserStorage;
 try { browserStorage = window.localStorage; } catch { /* O jogo ainda funciona sem save. */ }
 const loaded = loadGame(browserStorage);
@@ -108,6 +109,12 @@ function fillPoly(graphics, points, color, alpha = 1) {
 function makeHero(scene) {
   const wrap = scene.add.container(0, 0);
   const shadow = scene.add.ellipse(0, 8, 43, 16, 0x061319, .48);
+  if (scene.textures.exists('swordsman')) {
+    const art = scene.add.image(0, 1, 'swordsman').setOrigin(.5, 1);
+    art.setDisplaySize(104 * art.width / art.height, 104);
+    wrap.add([shadow, art]);
+    return wrap;
+  }
   const g = scene.add.graphics();
   // Silhueta original, simples e legível mesmo em tela pequena.
   g.fillStyle(0x293b4a).fillEllipse(0, -4, 31, 16);
@@ -120,6 +127,15 @@ function makeHero(scene) {
   g.lineStyle(3, 0xc69c5d).lineBetween(11, -30, 21, -39);
   wrap.add([shadow, g]);
   return wrap;
+}
+
+function makeNpc(scene, key, x, y, height) {
+  const npc = scene.add.container(x, y);
+  const shadow = scene.add.ellipse(0, 6, 45, 13, 0x061319, .5);
+  const art = scene.add.image(0, 0, key).setOrigin(.5, 1);
+  art.setDisplaySize(height * art.width / art.height, height);
+  npc.add([shadow, art]);
+  return npc;
 }
 
 function makeSkeleton(scene) {
@@ -167,7 +183,7 @@ function label(scene, parent, x, y, title, sub, color = '#f2e7cd') {
   const titleText = scene.add.text(0, 0, title, {fontFamily:'system-ui',fontSize:'17px',fontStyle:'bold',color,stroke:'#0b1a21',strokeThickness:4}).setOrigin(.5);
   const subText = scene.add.text(0, 20, sub, {fontFamily:'system-ui',fontSize:'11px',color:'#c8d3c9',stroke:'#0b1a21',strokeThickness:3}).setOrigin(.5);
   wrap.add([titleText, subText]);
-  if(scene.worldScale < .7) wrap.setScale(1.25);
+  if(scene.worldScale < .7) wrap.setScale(1.5);
   parent.add(wrap);
   return wrap;
 }
@@ -177,6 +193,9 @@ class BaseWorld extends Phaser.Scene {
   createBase(bgColor) {
     currentScene = this;
     this.cameras.main.setBackgroundColor(bgColor);
+    for (const [key, source] of Object.entries(imageAssets)) {
+      if (source && !this.textures.exists(key)) this.textures.addImage(key, source);
+    }
     this.world = this.add.container(0,0);
     this.hero = makeHero(this);
     this.world.add(this.hero);
@@ -186,7 +205,9 @@ class BaseWorld extends Phaser.Scene {
   }
   layout() {
     const w = this.scale.width, h = this.scale.height;
-    this.worldScale = Math.min(1.2, Math.max(.52, Math.min(w/900,h/530)));
+    this.worldScale = w < 650
+      ? Math.min(.55, Math.max(.34, w/900))
+      : Math.min(1.2, Math.max(.52, Math.min(w/900,h/530)));
     this.world.setScale(this.worldScale);
     this.positionWorld();
   }
@@ -210,25 +231,52 @@ class Village extends BaseWorld {
     $('scene-kicker').textContent='REFÚGIO INICIAL'; $('scene-title').textContent='Vila de Ryze';
     $('scene-hint').textContent='WASD / setas · E para interagir';
     $('legend').textContent='Clique/toque no chão para caminhar. Aproxime-se de um personagem ou do portal.';
+    this.illustrated = ['village-courtyard', 'merchant', 'portal-commander'].every(key => this.textures.exists(key));
     this.drawVillage();
     this.world.bringToTop(this.hero);
     this.setHeroPosition(-15,125);
     this.keys=this.input.keyboard.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT');
     this.target=null; this.pending=null;
-    this.interactables=[
+    this.interactables=this.illustrated ? [
+      {x:-260,y:5,name:'Mercador',action:openMerchant},
+      {x:140,y:-45,name:'Comandante',action:openCommander},
+      {x:300,y:-30,name:'Portal',action:enterSkeletonWorld},
+    ] : [
       {x:-230,y:35,name:'Mercador',action:openMerchant},
       {x:140,y:-65,name:'Comandante',action:openCommander},
       {x:285,y:-45,name:'Portal',action:enterSkeletonWorld},
     ];
     this.input.on('pointerdown',pointer=>{
       const p=this.localPointer(pointer);
-      const chosen=this.interactables.find(o=>Phaser.Math.Distance.Between(p.x,p.y,o.x,o.y)<53);
+      const chosen=this.interactables.find(o=>this.illustrated
+        ? o.name==='Portal' ? Math.abs(p.x-340)<88 && p.y>-255 && p.y<20
+          : Math.abs(p.x-o.x)<48 && p.y>o.y-112 && p.y<o.y+46
+        : Phaser.Math.Distance.Between(p.x,p.y,o.x,o.y)<53);
       if(chosen){ this.target={x:chosen.x,y:chosen.y}; this.pending=chosen; if(this.near(chosen)){this.target=null;this.pending=null;chosen.action();} }
       else { this.target=p; this.pending=null; }
     });
     renderHud();
   }
   drawVillage(){
+    if (this.illustrated) {
+      const ambient=this.add.image(0,0,'village-courtyard').setDisplaySize(1550,1450).setAlpha(.16).setTint(0x6fa5a2);
+      this.world.add(ambient);
+      const backdrop=this.add.image(0,0,'village-courtyard').setDisplaySize(1000,667);
+      this.world.add(backdrop);
+      const portal=this.add.container(340,-160);
+      const portalArt=this.textures.exists('skeleton-portal')
+        ? this.add.image(0,0,'skeleton-portal').setDisplaySize(160,240)
+        : this.add.ellipse(0,0,140,180,0x30d8a6,.65);
+      portal.add(portalArt);
+      this.world.add(portal);
+      this.tweens.add({targets:portal,alpha:.72,scaleX:1.03,scaleY:1.02,duration:1300,yoyo:true,repeat:-1});
+      this.world.add(makeNpc(this,'merchant',-260,5,102));
+      this.world.add(makeNpc(this,'portal-commander',140,-45,110));
+      label(this,this.world,-260,-115,'Mercador','equipamentos');
+      label(this,this.world,140,-165,'Comandante','mundos');
+      label(this,this.world,340,-272,'Portal','esqueletos','#8af1df');
+      return;
+    }
     const ground=this.add.graphics();
     ground.fillStyle(0x10252b).fillRect(-650,-360,1300,720);
     for(let row=0;row<11;row++)for(let col=0;col<11;col++){
@@ -427,13 +475,35 @@ window.addEventListener('keydown',event=>{
 window.addEventListener('beforeunload',()=>saveGame(browserStorage,state,loaded.writable));
 setInterval(()=>{renderHud();if(loaded.writable&&Date.now()-lastSave>5000)persist();},250);
 
-if(!window.Phaser){$('game').textContent='Não foi possível carregar Phaser. Verifique a conexão com a internet e recarregue a página.';}
-else new Phaser.Game({
-  type:Phaser.CANVAS,parent:'game',backgroundColor:'#14282e',
-  scale:{mode:Phaser.Scale.RESIZE,width:960,height:600,autoCenter:Phaser.Scale.CENTER_BOTH},
-  render:{pixelArt:false,antialias:true},
-  input:{activePointers:3},
-  scene:state.scene==='skeleton'?[SkeletonWorld,Village]:[Village,SkeletonWorld],
-  callbacks:{postBoot(){if(loaded.warning)setTimeout(()=>toast(loaded.warning),500);}}
-});
+function loadImage(file) {
+  return new Promise(resolve => {
+    const picture = new Image();
+    picture.onload = () => resolve(picture);
+    picture.onerror = () => resolve(null);
+    picture.src = `./assets/${file}`;
+  });
+}
+
+if(!window.Phaser){$('game').textContent='Não foi possível carregar Phaser. Reabra o index.html da pasta completa.';}
+else {
+  $('game').textContent='Carregando cenário…';
+  Promise.all([
+    ['swordsman','swordsman.png'],
+    ['village-courtyard','village-courtyard.png'],
+    ['merchant','merchant.png'],
+    ['portal-commander','portal-commander.png'],
+    ['skeleton-portal','skeleton-portal.png'],
+  ].map(async ([key,file]) => [key,await loadImage(file)])).then(assets => {
+    for (const [key,picture] of assets) imageAssets[key]=picture;
+    $('game').textContent='';
+    window.idleRyzeGame = new Phaser.Game({
+      type:Phaser.CANVAS,parent:'game',backgroundColor:'#14282e',
+      scale:{mode:Phaser.Scale.RESIZE,width:960,height:600,autoCenter:Phaser.Scale.CENTER_BOTH},
+      render:{pixelArt:false,antialias:true},
+      input:{activePointers:3},
+      scene:state.scene==='skeleton'?[SkeletonWorld,Village]:[Village,SkeletonWorld],
+      callbacks:{postBoot(){if(loaded.warning)setTimeout(()=>toast(loaded.warning),500);}}
+    });
+  });
+}
 })();
