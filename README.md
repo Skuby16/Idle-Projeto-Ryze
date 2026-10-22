@@ -1,8 +1,14 @@
-# Idle Ryze 2.0 — protótipo jogável com primeira arte da Vila
+# Idle Ryze 2.0 — protótipos Phaser e Godot
 
-RPG Idle 2D isométrico em português, feito com Phaser 3.90.0 em arquivos estáticos. Não há build, backend nem instalação para jogar. A Vila agora tem um cenário ilustrado original, Espadachim, Mercador, Comandante e portal em imagens separadas. O Mundo dos Esqueletos ainda usa arte vetorial provisória.
+RPG Idle 2D isométrico em português. A versão publicada continua em Phaser 3.90.0, com arquivos estáticos e sem build. Um projeto Godot 4.7.2 foi iniciado no mesmo repositório para desenvolver o jogo visualmente no editor. Ambos reutilizam as ilustrações originais da Vila; a arena e os esqueletos ainda usam arte vetorial provisória.
 
-## Jogar
+## Projeto Godot
+
+Abra [`project.godot`](./project.godot) pelo **Importar** do Godot e pressione **F5**. O primeiro marco já permite percorrer a Vila, interagir com Mercador e Comandante, atravessar o portal, lutar automaticamente e voltar. Controles: **WASD/setas**, clique ou toque no chão, **E** para interagir, **I** para inventário e **Espaço** para o golpe saltado. Na tela estreita, aparecem botões direcionais. A cena principal está em [`godot/scenes/main.tscn`](./godot/scenes/main.tscn), as regras em [`godot/scripts/game_rules.gd`](./godot/scripts/game_rules.gd), e há instruções de colaboração em [`godot/README.md`](./godot/README.md).
+
+O Godot guarda o progresso em `user://idle_ryze_godot_v1.json`, separado do save Phaser. O formato tem versão; um save desconhecido ou inválido é preservado e o jogo inicia uma sessão temporária. O projeto usa o renderizador **Compatibility** para preparar a futura exportação web. Por enquanto, o GitHub Pages ainda publica o Phaser na raiz. A exportação Godot será feita numa pasta própria depois de validar esta cena no editor.
+
+## Jogar a versão Phaser
 
 Abra **https://skuby16.github.io/Idle-Projeto-Ryze/** depois de publicar a branch `main`. Para testar a cópia local, abra `index.html` diretamente no navegador. O Phaser e as ilustrações já estão na pasta do jogo, então a cópia local funciona sem internet. O save da cópia local fica separado do save do site publicado.
 

@@ -1,2 +1,5 @@
 tests/*-smoke.png
 tests/local-*.png
+.godot/
+.local-tools/
+*.import
