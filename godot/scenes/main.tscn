@@ -1,7 +1,8 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=9 format=3]
 
 [ext_resource type="Script" path="res://godot/scripts/main.gd" id="1_main"]
 [ext_resource type="Script" path="res://godot/scripts/arena.gd" id="2_arena"]
+[ext_resource type="Script" path="res://godot/scripts/boss.gd" id="8_boss"]
 [ext_resource type="Texture2D" path="res://assets/village-courtyard.png" id="3_village"]
 [ext_resource type="Texture2D" path="res://assets/swordsman.png" id="4_hero"]
 [ext_resource type="Texture2D" path="res://assets/merchant.png" id="5_merchant"]
@@ -73,6 +74,23 @@ script = ExtResource("2_arena")
 position = Vector2(-215, 80)
 
 [node name="Sprite" type="Sprite2D" parent="World/SkeletonWorld/Hero"]
+position = Vector2(0, -52)
+scale = Vector2(0.07065, 0.07065)
+texture = ExtResource("4_hero")
+
+[node name="Dungeon" type="Node2D" parent="World"]
+visible = false
+script = ExtResource("2_arena")
+dungeon = true
+
+[node name="Boss" type="Node2D" parent="World/Dungeon"]
+position = Vector2(160, -25)
+script = ExtResource("8_boss")
+
+[node name="Hero" type="Node2D" parent="World/Dungeon"]
+position = Vector2(-215, 80)
+
+[node name="Sprite" type="Sprite2D" parent="World/Dungeon/Hero"]
 position = Vector2(0, -52)
 scale = Vector2(0.07065, 0.07065)
 texture = ExtResource("4_hero")

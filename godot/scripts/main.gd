@@ -2,8 +2,9 @@ extends Control
 
 const Rules = preload("res://godot/scripts/game_rules.gd")
 const Skeleton = preload("res://godot/scripts/skeleton.gd")
-const SAVE_PATH := "user://idle_ryze_godot_v1.json"
-const SAVE_VERSION := 1
+const SAVE_PATH := "user://idle_ryze_godot_v2.json"
+const LEGACY_SAVE_PATH := "user://idle_ryze_godot_v1.json"
+const SAVE_VERSION := 2
 
 @onready var world: Node2D = $World
 @onready var village: Node2D = $World/Village
@@ -13,13 +14,19 @@ const SAVE_VERSION := 1
 @onready var arena: Node2D = $World/SkeletonWorld
 @onready var arena_hero: Node2D = $World/SkeletonWorld/Hero
 @onready var arena_hero_sprite: Sprite2D = $World/SkeletonWorld/Hero/Sprite
+@onready var dungeon: Node2D = $World/Dungeon
+@onready var dungeon_boss: Node2D = $World/Dungeon/Boss
+@onready var dungeon_hero: Node2D = $World/Dungeon/Hero
+@onready var dungeon_hero_sprite: Sprite2D = $World/Dungeon/Hero/Sprite
 @onready var ui: Control = $HUD/UI
 
 var state: Dictionary = {
 	"version": SAVE_VERSION, "level": 1, "xp": 0, "gold": 0,
 	"hp": Rules.HERO_HP, "mana": Rules.HERO_MANA, "sword_level": 0,
+	"dungeon_keys": 0, "boss_kills": 0,
 	"scene": "village"
 }
+var rng := RandomNumberGenerator.new()
 var save_enabled := true
 var save_warning := ""
 var active_scene := "village"
@@ -40,11 +47,21 @@ var elapsed := 0.0
 var top_bar: ColorRect
 var title_plate: ColorRect
 var brand_label: Label
-var status_label: Label
+var level_label: Label
+var resources_label: Label
+var hp_background: ColorRect
+var hp_fill: ColorRect
+var hp_label: Label
+var mana_background: ColorRect
+var mana_fill: ColorRect
+var mana_label: Label
+var xp_background: ColorRect
+var xp_fill: ColorRect
+var xp_label: Label
 var scene_label: Label
 var hint_label: Label
 var toast_label: Label
-var inventory_button: Button
+var menu_button: Button
 var interact_button: Button
 var skill_button: Button
 var return_button: Button
@@ -53,6 +70,7 @@ var panel: PanelContainer
 var panel_body: VBoxContainer
 
 func _ready() -> void:
+	rng.randomize()
 	_load_save()
 	_build_ui()
 	_add_world_labels()
@@ -66,10 +84,10 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	elapsed += delta
 	portal.modulate.a = 0.82 + 0.16 * sin(elapsed * 2.6)
-	if active_scene == "village":
-		_tick_village(delta)
-	else:
-		_tick_combat(delta)
+	match active_scene:
+		"village": _tick_village(delta)
+		"skeleton": _tick_combat(delta)
+		"dungeon": _tick_dungeon(delta)
 	skill_left = maxf(0.0, skill_left - delta)
 	save_left -= delta
 	if save_left <= 0.0:
@@ -89,11 +107,13 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		return
 	if event.keycode == KEY_ESCAPE:
 		panel.visible = false
+	elif event.keycode == KEY_M:
+		_open_menu()
 	elif event.keycode == KEY_I:
 		_open_inventory()
 	elif event.keycode == KEY_E and active_scene == "village":
 		_interact()
-	elif event.keycode == KEY_SPACE and active_scene == "skeleton":
+	elif event.keycode == KEY_SPACE and active_scene != "village":
 		_cast_skill()
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -203,7 +223,13 @@ func _tick_combat(delta: float) -> void:
 				enemy.alive = true
 				enemy.hp = Rules.SKELETON_HP
 				enemy.attack_left = Rules.SKELETON_ATTACK_SECONDS
+				enemy.display_seconds = 0
 				enemy.queue_redraw()
+			else:
+				var shown := ceili(enemy.respawn_left)
+				if shown != enemy.display_seconds:
+					enemy.display_seconds = shown
+					enemy.queue_redraw()
 	if int(state["hp"]) <= 0:
 		death_left -= delta
 		if death_left <= 0.0:
@@ -257,25 +283,81 @@ func _hit_enemy(enemy, damage: int) -> void:
 	if enemy.hp == 0:
 		enemy.alive = false
 		enemy.respawn_left = Rules.SKELETON_RESPAWN_SECONDS
+		enemy.display_seconds = ceili(enemy.respawn_left)
 		enemy.queue_redraw()
-		state["gold"] = int(state["gold"]) + Rules.KILL_GOLD
-		state["xp"] = int(state["xp"]) + Rules.KILL_XP
-		state["hp"] = mini(Rules.max_hp(int(state["level"])), int(state["hp"]) + Rules.KILL_HEAL)
-		var leveled := false
-		while int(state["xp"]) >= Rules.xp_needed(int(state["level"])):
-			state["xp"] = int(state["xp"]) - Rules.xp_needed(int(state["level"]))
-			state["level"] = int(state["level"]) + 1
-			state["hp"] = mini(Rules.max_hp(int(state["level"])), int(state["hp"]) + 3)
-			leveled = true
-		_toast("Nível %d!" % int(state["level"]) if leveled else "+%d ouro  ·  +%d XP" % [Rules.KILL_GOLD, Rules.KILL_XP])
+		_grant_skeleton_rewards(rng.randf())
 		_save()
 	else:
 		var original: Color = enemy.modulate
 		enemy.modulate = Color("#ffffff")
 		create_tween().tween_property(enemy, "modulate", original, 0.18)
 
+func _grant_skeleton_rewards(drop_roll: float) -> void:
+	state["gold"] = int(state["gold"]) + Rules.KILL_GOLD
+	state["xp"] = int(state["xp"]) + Rules.KILL_XP
+	state["hp"] = mini(Rules.max_hp(int(state["level"])), int(state["hp"]) + Rules.KILL_HEAL)
+	var leveled := false
+	while int(state["xp"]) >= Rules.xp_needed(int(state["level"])):
+		state["xp"] = int(state["xp"]) - Rules.xp_needed(int(state["level"]))
+		state["level"] = int(state["level"]) + 1
+		state["hp"] = mini(Rules.max_hp(int(state["level"])), int(state["hp"]) + 3)
+		leveled = true
+	if drop_roll < Rules.DUNGEON_KEY_DROP_CHANCE:
+		state["dungeon_keys"] = int(state["dungeon_keys"]) + 1
+		_toast("Chave da Dungeon encontrada!  ·  Total: %d" % int(state["dungeon_keys"]))
+	else:
+		_toast("Nível %d!" % int(state["level"]) if leveled else "+%d ouro  ·  +%d XP" % [Rules.KILL_GOLD, Rules.KILL_XP])
+
+func _tick_dungeon(delta: float) -> void:
+	mana_left -= delta
+	if mana_left <= 0.0:
+		mana_left += Rules.MANA_REGEN_SECONDS
+		state["mana"] = mini(Rules.HERO_MANA, int(state["mana"]) + 1)
+	if int(state["hp"]) <= 0:
+		death_left -= delta
+		if death_left <= 0.0:
+			state["hp"] = Rules.max_hp(int(state["level"]))
+			death_left = Rules.HERO_RESPAWN_SECONDS
+			_set_scene("skeleton")
+			_toast("Derrotado pelo Rei Esqueleto. A chave foi consumida.")
+			_save()
+		return
+	if not dungeon_boss.alive:
+		return
+	var to_boss: Vector2 = dungeon_boss.position - dungeon_hero.position
+	if to_boss.length() > 78.0:
+		dungeon_hero.position += to_boss.normalized() * minf(Rules.HERO_MOVE_SPEED * delta, to_boss.length() - 78.0)
+		dungeon_hero_sprite.flip_h = to_boss.x < 0.0
+	else:
+		attack_left -= delta
+		if attack_left <= 0.0:
+			attack_left = Rules.HERO_ATTACK_SECONDS
+			_hit_boss(Rules.damage(int(state["level"]), int(state["sword_level"])))
+	if dungeon_boss.alive and dungeon_hero.position.distance_to(dungeon_boss.position) < 94.0:
+		dungeon_boss.attack_left -= delta
+		if dungeon_boss.attack_left <= 0.0:
+			dungeon_boss.attack_left = Rules.BOSS_ATTACK_SECONDS
+			state["hp"] = maxi(0, int(state["hp"]) - Rules.BOSS_DAMAGE)
+			if int(state["hp"]) == 0:
+				dungeon_hero.visible = false
+				death_left = Rules.HERO_RESPAWN_SECONDS
+				_toast("Espadachim derrotado na Dungeon...")
+
+func _hit_boss(damage: int) -> void:
+	if not dungeon_boss.alive:
+		return
+	dungeon_boss.hp = maxi(0, dungeon_boss.hp - damage)
+	dungeon_boss.queue_redraw()
+	if dungeon_boss.hp == 0:
+		dungeon_boss.alive = false
+		dungeon_boss.visible = false
+		state["boss_kills"] = int(state["boss_kills"]) + 1
+		_set_scene("skeleton")
+		_toast("Rei Esqueleto derrotado! Vitórias: %d" % int(state["boss_kills"]))
+		_save()
+
 func _cast_skill() -> void:
-	if active_scene != "skeleton" or int(state["hp"]) <= 0:
+	if active_scene == "village" or int(state["hp"]) <= 0:
 		return
 	if skill_left > 0.0:
 		_toast("Golpe saltado em recarga.")
@@ -283,14 +365,18 @@ func _cast_skill() -> void:
 	if int(state["mana"]) < Rules.SKILL_MANA_COST:
 		_toast("Mana insuficiente.")
 		return
-	var enemy = _nearest_enemy()
-	if enemy == null:
+	var enemy = dungeon_boss if active_scene == "dungeon" else _nearest_enemy()
+	if enemy == null or not enemy.alive:
 		_toast("Nenhum esqueleto disponível.")
 		return
 	state["mana"] = int(state["mana"]) - Rules.SKILL_MANA_COST
 	skill_left = Rules.SKILL_COOLDOWN_SECONDS
-	arena_hero.position = enemy.position + Vector2(-39, 10)
-	_hit_enemy(enemy, Rules.SKILL_DAMAGE)
+	if active_scene == "dungeon":
+		dungeon_hero.position = enemy.position + Vector2(-72, 10)
+		_hit_boss(Rules.SKILL_DAMAGE)
+	else:
+		arena_hero.position = enemy.position + Vector2(-39, 10)
+		_hit_enemy(enemy, Rules.SKILL_DAMAGE)
 	_save()
 
 func _enter_skeleton_world() -> void:
@@ -299,18 +385,35 @@ func _enter_skeleton_world() -> void:
 	_save()
 	_toast("Combate automático iniciado.")
 
+func _enter_dungeon() -> void:
+	if int(state["dungeon_keys"]) < 1:
+		_toast("Você precisa de uma Chave da Dungeon.")
+		return
+	state["dungeon_keys"] = int(state["dungeon_keys"]) - 1
+	panel.visible = false
+	dungeon_boss.reset_boss()
+	dungeon_hero.position = Vector2(-215, 80)
+	dungeon_hero.visible = int(state["hp"]) > 0
+	_set_scene("dungeon")
+	_save()
+	_toast("Dungeon do Rei Esqueleto · 1 chave consumida.")
+
 func _return_village() -> void:
 	panel.visible = false
 	_set_scene("village")
 	_save()
 
 func _set_scene(scene_name: String) -> void:
-	active_scene = scene_name if scene_name == "skeleton" else "village"
+	active_scene = scene_name if scene_name in ["village", "skeleton", "dungeon"] else "village"
 	state["scene"] = active_scene
 	village.visible = active_scene == "village"
 	arena.visible = active_scene == "skeleton"
+	dungeon.visible = active_scene == "dungeon"
 	if active_scene == "skeleton":
 		arena_hero.visible = int(state["hp"]) > 0
+		attack_left = 0.0
+	elif active_scene == "dungeon":
+		dungeon_hero.visible = int(state["hp"]) > 0
 		attack_left = 0.0
 	else:
 		has_target = false
@@ -322,10 +425,37 @@ func _build_ui() -> void:
 	top_bar.color = Color("#101d25")
 	top_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	ui.add_child(top_bar)
-	brand_label = _make_label("✦  IDLE RYZE 2.0", 20, Color("#f2dfb4"))
+	brand_label = _make_label("✦  IDLE RYZE", 20, Color("#f2dfb4"))
 	ui.add_child(brand_label)
-	status_label = _make_label("", 15, Color("#e9ede4"))
-	ui.add_child(status_label)
+	level_label = _make_label("", 18, Color("#e7bd69"))
+	ui.add_child(level_label)
+	for bar_name in ["hp", "mana", "xp"]:
+		var background := ColorRect.new()
+		background.color = Color("#25333a")
+		background.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		ui.add_child(background)
+		var fill := ColorRect.new()
+		fill.color = Color("#c74962") if bar_name == "hp" else Color("#4c91d1") if bar_name == "mana" else Color("#d1a95c")
+		fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		background.add_child(fill)
+		var value := _make_label("", 15, Color("#fff8ed"))
+		value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		background.add_child(value)
+		match bar_name:
+			"hp":
+				hp_background = background
+				hp_fill = fill
+				hp_label = value
+			"mana":
+				mana_background = background
+				mana_fill = fill
+				mana_label = value
+			"xp":
+				xp_background = background
+				xp_fill = fill
+				xp_label = value
+	resources_label = _make_label("", 16, Color("#edce90"))
+	ui.add_child(resources_label)
 	title_plate = ColorRect.new()
 	title_plate.color = Color(0.06, 0.12, 0.15, 0.78)
 	title_plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -336,9 +466,11 @@ func _build_ui() -> void:
 	ui.add_child(hint_label)
 	toast_label = _make_label("", 16, Color("#86f0dd"))
 	toast_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	toast_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	toast_label.visible = false
 	ui.add_child(toast_label)
-	inventory_button = _make_button("Mochila [I]", _open_inventory)
+	menu_button = _make_button("☰  Menu", _open_menu)
+	menu_button.add_theme_color_override("font_color", Color("#f2dfb4"))
 	interact_button = _make_button("Interagir [E]", _interact)
 	skill_button = _make_button("Golpe saltado", _cast_skill)
 	return_button = _make_button("Voltar à vila", _return_village)
@@ -355,6 +487,10 @@ func _build_ui() -> void:
 	style.border_color = Color("#65817d")
 	style.set_border_width_all(2)
 	style.set_corner_radius_all(8)
+	style.content_margin_left = 18
+	style.content_margin_right = 18
+	style.content_margin_top = 18
+	style.content_margin_bottom = 18
 	panel.add_theme_stylebox_override("panel", style)
 	panel.visible = false
 	panel.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -399,27 +535,41 @@ func _layout() -> void:
 	var viewport_size: Vector2 = get_viewport_rect().size
 	var window_size: Vector2 = Vector2(get_window().size)
 	var compact := window_size.x < 700.0
-	var interface_scale := clampf(viewport_size.x / maxf(window_size.x, 1.0) * 0.8, 1.0, 3.0) if compact else 1.0
+	var interface_scale := clampf(viewport_size.x / maxf(window_size.x, 1.0) * 0.9, 1.0, 3.0) if compact else 1.0
 	ui.scale = Vector2.ONE * interface_scale
 	var size: Vector2 = viewport_size / interface_scale
 	world.scale = Vector2.ONE * clampf(minf(viewport_size.x / 900.0, viewport_size.y / 530.0), 0.52, 1.2)
 	world.position = viewport_size / 2.0 + Vector2(0, 22)
 	top_bar.position = Vector2.ZERO
-	top_bar.size = Vector2(size.x, 84 if compact else 66)
+	top_bar.size = Vector2(size.x, 150 if compact else 122)
 	brand_label.position = Vector2(14, 9)
-	brand_label.size = Vector2(270, 32)
-	status_label.position = Vector2(14 if compact else 335, 47 if compact else 21)
-	status_label.size = Vector2(size.x - 25 if compact else maxf(300, size.x - 500), 27)
-	title_plate.position = Vector2(8, 85 if compact else 77)
+	brand_label.size = Vector2(230, 32)
+	var bar_width := size.x - 32.0 if compact else 430.0
+	level_label.position = Vector2(size.x - 218.0, 9) if compact else Vector2(bar_width - 80.0, 9)
+	level_label.size = Vector2(80, 30)
+	for entry in [
+		{"background": hp_background, "fill": hp_fill, "label": hp_label, "y": 39.0},
+		{"background": mana_background, "fill": mana_fill, "label": mana_label, "y": 67.0},
+		{"background": xp_background, "fill": xp_fill, "label": xp_label, "y": 95.0}
+	]:
+		entry["background"].position = Vector2(16, entry["y"])
+		entry["background"].size = Vector2(bar_width, 22)
+		entry["fill"].position = Vector2.ZERO
+		entry["fill"].size.y = 22
+		entry["label"].position = Vector2(5, 1)
+		entry["label"].size = Vector2(bar_width - 12, 20)
+	resources_label.position = Vector2(16, 122) if compact else Vector2(470, 53)
+	resources_label.size = Vector2(size.x - 32 if compact else maxf(200, size.x - 610), 25)
+	menu_button.position = Vector2(size.x - 118, 9)
+	menu_button.size = Vector2(102, 36)
+	title_plate.position = Vector2(8, 160 if compact else 132)
 	title_plate.size = Vector2(minf(445.0, size.x - 16.0), 80)
-	scene_label.position = Vector2(16, 99 if compact else 82)
+	scene_label.position = Vector2(16, 171 if compact else 140)
 	scene_label.size = Vector2(size.x - 32, 45)
-	hint_label.position = Vector2(17, 138 if compact else 125)
+	hint_label.position = Vector2(17, 208 if compact else 180)
 	hint_label.size = Vector2(size.x - 34, 30)
-	toast_label.position = Vector2(size.x * 0.25, 170 if compact else 110)
-	toast_label.size = Vector2(size.x * 0.5, 35)
-	inventory_button.position = Vector2(size.x - 132, 12)
-	inventory_button.size = Vector2(116, 39)
+	toast_label.position = Vector2(12, 248 if compact else 220)
+	toast_label.size = Vector2(size.x - 24, 52 if compact else 35)
 	interact_button.position = Vector2(size.x - 145, size.y - 58)
 	interact_button.size = Vector2(130, 43)
 	skill_button.position = Vector2(12, size.y - 106) if compact else Vector2(size.x - 385, size.y - 58)
@@ -436,24 +586,30 @@ func _layout() -> void:
 		button.size = Vector2(45, 45)
 		button.visible = compact and active_scene == "village"
 	var panel_width := minf(460, size.x - 24)
-	panel.position = (size - Vector2(panel_width, 310)) / 2.0
-	panel.size = Vector2(panel_width, 310)
+	var panel_height := minf(350, size.y - 40)
+	panel.position = (size - Vector2(panel_width, panel_height)) / 2.0
+	panel.size = Vector2(panel_width, panel_height)
 	_update_hud()
 
 func _update_hud() -> void:
-	if status_label == null:
+	if hp_label == null:
 		return
-	status_label.text = "NV %d    VIDA %d/%d    MANA %d/%d    XP %d/%d    ◆ %d" % [
-		int(state["level"]), int(state["hp"]), Rules.max_hp(int(state["level"])),
-		int(state["mana"]), Rules.HERO_MANA, int(state["xp"]),
-		Rules.xp_needed(int(state["level"])), int(state["gold"])
-	]
-	scene_label.text = "Vila de Ryze" if active_scene == "village" else "Mundo dos Esqueletos"
-	hint_label.text = "WASD / setas / toque para mover · E para interagir" if active_scene == "village" else "Combate automático · Espaço para golpe saltado"
+	var max_hp: int = Rules.max_hp(int(state["level"]))
+	var xp_goal: int = Rules.xp_needed(int(state["level"]))
+	level_label.text = "NÍVEL %d" % int(state["level"])
+	hp_label.text = "VIDA    %d / %d" % [int(state["hp"]), max_hp]
+	mana_label.text = "MANA    %d / %d" % [int(state["mana"]), Rules.HERO_MANA]
+	xp_label.text = "XP    %d / %d" % [int(state["xp"]), xp_goal]
+	hp_fill.size.x = hp_background.size.x * clampf(float(state["hp"]) / max_hp, 0.0, 1.0)
+	mana_fill.size.x = mana_background.size.x * clampf(float(state["mana"]) / Rules.HERO_MANA, 0.0, 1.0)
+	xp_fill.size.x = xp_background.size.x * clampf(float(state["xp"]) / xp_goal, 0.0, 1.0)
+	resources_label.text = "◆ %d OURO    CHAVES %d" % [int(state["gold"]), int(state["dungeon_keys"])]
+	scene_label.text = "Vila de Ryze" if active_scene == "village" else "Mundo dos Esqueletos" if active_scene == "skeleton" else "Dungeon do Rei Esqueleto"
+	hint_label.text = "WASD / setas / toque · E para interagir" if active_scene == "village" else "Farm automático · Respawn em 25 s" if active_scene == "skeleton" else "Boss: combate automático · Espaço para golpe saltado"
 	interact_button.visible = active_scene == "village"
-	skill_button.visible = active_scene == "skeleton"
-	return_button.visible = active_scene == "skeleton"
-	if active_scene == "skeleton":
+	skill_button.visible = active_scene != "village"
+	return_button.visible = active_scene != "village"
+	if active_scene != "village":
 		skill_button.text = "Golpe saltado · %ds" % int(ceilf(skill_left)) if skill_left > 0.0 else "Golpe saltado · %d mana" % Rules.SKILL_MANA_COST
 		skill_button.disabled = skill_left > 0.0 or int(state["mana"]) < Rules.SKILL_MANA_COST or int(state["hp"]) <= 0
 	for direction in direction_buttons:
@@ -510,8 +666,22 @@ func _open_commander() -> void:
 	_panel_label("COMANDANTE DO PORTAL", 23)
 	_panel_label("Os esqueletos avançam além do limiar.")
 	_panel_button("Entrar no Mundo dos Esqueletos", _enter_skeleton_world)
+	_panel_label("Dungeon do Rei Esqueleto · %d chave(s)" % int(state["dungeon_keys"]))
+	_panel_button("Usar 1 chave e enfrentar o Rei", _enter_dungeon, int(state["dungeon_keys"]) < 1)
 	_panel_label("Mundo dos Centauros: planejado para nível 5.")
 	_panel_button("Fechar", _close_panel)
+	panel.visible = true
+
+func _open_menu() -> void:
+	_clear_panel()
+	_panel_label("MENU · IDLE RYZE", 25)
+	_panel_label("Nível %d  ·  Ouro %d  ·  Chaves %d" % [int(state["level"]), int(state["gold"]), int(state["dungeon_keys"])])
+	_panel_button("Continuar jogando", _close_panel)
+	_panel_button("Mochila e equipamentos [I]", _open_inventory)
+	_panel_button("Dungeon do Rei Esqueleto · 1 chave", _enter_dungeon, int(state["dungeon_keys"]) < 1)
+	if active_scene != "village":
+		_panel_button("Voltar à Vila", _return_village)
+	_panel_label("O farm avança enquanto o jogo está aberto.")
 	panel.visible = true
 
 func _open_inventory() -> void:
@@ -520,7 +690,9 @@ func _open_inventory() -> void:
 	_panel_label("Arma: Espada reforçada +%d" % int(state["sword_level"]) if int(state["sword_level"]) > 0 else "Arma: Espada gasta")
 	_panel_label("Capacete: vazio     Botas: vazio     Peitoral: vazio")
 	_panel_label("Mochila: □  □  □  □  □  □  □  □")
+	_panel_label("Chave da Dungeon do Rei Esqueleto: %d" % int(state["dungeon_keys"]))
 	_panel_label("Os outros equipamentos chegam depois.")
+	_panel_button("Voltar ao menu", _open_menu)
 	_panel_button("Fechar", _close_panel)
 	panel.visible = true
 
@@ -535,19 +707,32 @@ func _toast(message: String) -> void:
 	toast_left = 2.7
 
 func _load_save() -> void:
-	if not FileAccess.file_exists(SAVE_PATH):
+	var source_path := SAVE_PATH if FileAccess.file_exists(SAVE_PATH) else LEGACY_SAVE_PATH
+	if not FileAccess.file_exists(source_path):
 		return
-	var loaded = JSON.parse_string(FileAccess.get_file_as_string(SAVE_PATH))
-	if typeof(loaded) != TYPE_DICTIONARY or int(loaded.get("version", -1)) != SAVE_VERSION:
+	var loaded = JSON.parse_string(FileAccess.get_file_as_string(source_path))
+	if typeof(loaded) != TYPE_DICTIONARY:
 		save_enabled = false
 		save_warning = "Save antigo ou inválido preservado. Sessão temporária."
+		return
+	var legacy := source_path == LEGACY_SAVE_PATH and int(loaded.get("version", -1)) == 1
+	if not legacy and int(loaded.get("version", -1)) != SAVE_VERSION:
+		save_enabled = false
+		save_warning = "Save de versão desconhecida preservado. Sessão temporária."
 		return
 	for key in ["level", "xp", "gold", "hp", "mana", "sword_level"]:
 		if not loaded.has(key) or (typeof(loaded[key]) != TYPE_INT and typeof(loaded[key]) != TYPE_FLOAT):
 			save_enabled = false
 			save_warning = "Save incompleto preservado. Sessão temporária."
 			return
-	if loaded.get("scene", "") != "village" and loaded.get("scene", "") != "skeleton":
+	if not legacy:
+		for key in ["dungeon_keys", "boss_kills"]:
+			if not loaded.has(key) or (typeof(loaded[key]) != TYPE_INT and typeof(loaded[key]) != TYPE_FLOAT):
+				save_enabled = false
+				save_warning = "Save incompleto preservado. Sessão temporária."
+				return
+	var allowed_scenes := ["village", "skeleton"] if legacy else ["village", "skeleton", "dungeon"]
+	if not loaded.get("scene", "") in allowed_scenes:
 		save_enabled = false
 		save_warning = "Save inválido preservado. Sessão temporária."
 		return
@@ -557,6 +742,8 @@ func _load_save() -> void:
 	state["hp"] = clampi(int(loaded["hp"]), 0, Rules.max_hp(int(state["level"])))
 	state["mana"] = clampi(int(loaded["mana"]), 0, Rules.HERO_MANA)
 	state["sword_level"] = maxi(0, int(loaded["sword_level"]))
+	state["dungeon_keys"] = 0 if legacy else maxi(0, int(loaded["dungeon_keys"]))
+	state["boss_kills"] = 0 if legacy else maxi(0, int(loaded["boss_kills"]))
 	state["scene"] = loaded["scene"]
 
 func _save() -> void:
